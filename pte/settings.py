@@ -11,6 +11,15 @@ import commands
 
 c = gconf.client_get_default()
 
+__me__ = None # god forgive me for this...
+
+def get_main():
+    return __me__
+
+def set_main(klass):
+    global __me__
+    __me__ = klass
+
 default_dict = dict(
             title="Shell",
             font=pango.FontDescription("monospace"),
@@ -70,7 +79,8 @@ def get_saved_tabs():
     return ret
 
 def save_tabs(terms):    
-    c.remove_dir(SAVED_TABS_PATH)
+    if c.dir_exists(SAVED_TABS_PATH):
+        c.remove_dir(SAVED_TABS_PATH)
     if c.get_bool(SAVED_TABS_ALLOW_PATH):
         for (i,t) in enumerate(terms):
             c.set_string("%s/%d/title"%(SAVED_TABS_PATH,i), t['title'] or t['profile']['title'])
@@ -82,6 +92,7 @@ default_bindings = dict(
         fullscreen      = { "key":'F11', "command": commands.fullscreen },
         tab_new         = { "key":'<Control>N', "command": commands.tab_new },
         tab_close       = { "key":'<Control>W', "command": commands.tab_close },
+        tab_duplicate   = { "key":'<Control><Shift>D', "command": commands.tab_duplicate },
         tab_move_left   = { "key":'<Control><Shift>Left', "command": commands.tab_move_left },
         tab_move_right  = { "key":'<Control><Shift>Right', "command": commands.tab_move_right },
         tab_shift_left  = { "key":'<Shift>Left', "command": commands.tab_shift_left },

@@ -49,8 +49,29 @@ def tab_new(main, sender, event):
     main.nb.set_current_page(pn)
     main.window.set_focus(w)
 
+def __get_action_tab(main, sender):
+    pn = -1
+    if type(sender) is gtk.Window:
+        pn = main.nb.get_current_page()
+    else:
+        for (i,p) in enumerate(main.nb.get_children()):
+            if main.nb.get_tab_label(p) == sender:
+                pn = i
+    return pn
+
 def tab_close(main, sender, event):
-    main.remove_book_by_n( main.nb.get_current_page() )
+    main.remove_book_by_n( __get_action_tab(main, sender) )
+
+def tab_lock(main, sender, event):
+    pass
+
+def tab_duplicate(main, sender, event):
+    t = main.nb.get_nth_page( __get_action_tab(main, sender) )
+    for term in main.terms:
+        if term['widget'] == t:
+            ta = dict ( title=term['title'], profile=term['profile'], widget=None )  
+            ta['widget'] = main.new_tab(term['profile'], term['title'])
+            main.terms += [ ta ]
 
 def command_by_key(b, key, state):
     for v in b.values():

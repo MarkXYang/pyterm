@@ -8,6 +8,7 @@ import os, sys
 
 # Local imports
 import settings as conf
+import commands
 
 def add_icon_to_button(button, icon_id):
     iconBox = gtk.HBox(False, 0)
@@ -49,6 +50,25 @@ def create_custom_tab(notebook, title, profile, close_event):
     tabBox.show_all()
     eventBox.add(tabBox)
     return eventBox
+
+def tab_button_press(obj,event):
+    if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+        menu = gtk.Menu()
+        items = [ 
+                (gtk.STOCK_CLOSE,"_Close Tab",  lambda x: commands.tab_close(conf.get_main(), obj, None) ),
+                (gtk.STOCK_DIALOG_AUTHENTICATION,"_Lock Tab", lambda x: commands.tab_lock(conf.get_main(), obj, None)),
+                (gtk.STOCK_COPY,"_Duplicate Tab", lambda x: commands.tab_duplicate(conf.get_main(), obj, None) )
+                ]
+
+        for stockid,label,command in items:
+            ni = gtk.ImageMenuItem(label)
+            ni.connect("activate",command)
+            img = gtk.Image ()
+            img.set_from_stock(stockid, gtk.ICON_SIZE_MENU)
+            ni.set_image(img)
+            menu.add(ni)
+            ni.show()
+        menu.popup(None,None,None,event.button,event.time)
 
 
 class ConfirmDialog(gtk.MessageDialog):
