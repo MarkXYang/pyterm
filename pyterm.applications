@@ -1,0 +1,7 @@
+pyterm
+    command=pyterm
+    name=PyTerm
+    can_open_multiple_files=false
+    expects_uris=false
+    requires_terminal=false
+    mime_types=x-directory/normal

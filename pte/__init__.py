@@ -5,7 +5,6 @@ import gtk,pango,vte
 
 # Python imports
 import os, sys
-import gettext
 
 # Local imports
 import gui
@@ -83,7 +82,6 @@ class PTE:
         conf().main = self
 
     def main(self):
-        gettext.install('pyterm', 'locale', unicode=1)
         try:
             gtk.main()
         except KeyboardInterrupt,e:

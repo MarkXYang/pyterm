@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+_Name=PyTerm - Terminal Emulator
+_Comment=Multitabbed terminal emulator
+Exec=pyterm
+Terminal=false
+Type=Application
+Icon=xterm
+Categories=GNOME;Applications;Accessories;

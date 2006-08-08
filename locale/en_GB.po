@@ -1,0 +1,41 @@
+# English translations for PACKAGE package.
+# Copyright (C) 2006 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Eli Yukelzon <reflog@gmail.com>, 2006.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2006-08-07 15:50+0300\n"
+"PO-Revision-Date: 2006-08-07 15:52+0300\n"
+"Last-Translator: Eli Yukelzon <reflog@gmail.com>\n"
+"Language-Team: English <en_gb@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: gui.py:84
+msgid "Tab renaming"
+msgstr "Tab renaming"
+
+#: gui.py:84
+msgid "Please enter new title for the tab:"
+msgstr "Please enter new title for the tab:"
+
+#: gui.py:91
+msgid "_Close Tab"
+msgstr "_Close Tab"
+
+#: gui.py:92
+msgid "_Lock Tab"
+msgstr "_Lock Tab"
+
+#: gui.py:93
+msgid "_Duplicate Tab"
+msgstr "_Duplicate Tab"
+
+#: __init__.py:31
+msgid "Thank you for using PyTerm by Reflog"
+msgstr "Thank you for using PyTerm by Reflog!"

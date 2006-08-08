@@ -1,8 +1,24 @@
 #!/usr/bin/python
+import sys
+sys.path += [ #LIBDIR# ]
+import paths
+import gettext
+import locale
+
+try:
+    locale.setlocale(locale.LC_ALL, '')
+    gettext.bindtextdomain("pyterm", paths.locale_dir() )
+    gettext.textdomain("pyterm")
+    gettext.install("pyterm", paths.locale_dir(), unicode=1)
+except (IOError,locale.Error), e:
+    # fake gettext until translations in place
+    print "(pyterm): WARNING **: %s" % e
+    __builtins__.__dict__["_"] = lambda x : x
+__builtins__.__dict__["ngettext"] = gettext.ngettext
+
 
 from pte import PTE
 
 if __name__ == "__main__":
     pte = PTE()
     pte.main()
-
