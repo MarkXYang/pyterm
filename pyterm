@@ -23,7 +23,7 @@ import gettext
 import locale
 
 version = "0.0.1"
-revision = "$Rev$"
+revision = "$Id$"
 
 try:
     locale.setlocale(locale.LC_ALL, '')
