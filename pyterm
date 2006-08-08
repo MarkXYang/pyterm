@@ -22,7 +22,8 @@ import paths
 import gettext
 import locale
 
-version = "$Revision: $"
+version = "0.0.1"
+revision = "$Rev$"
 
 try:
     locale.setlocale(locale.LC_ALL, '')
