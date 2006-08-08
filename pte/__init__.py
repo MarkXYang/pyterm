@@ -19,6 +19,7 @@
 import pygtk
 pygtk.require('2.0')
 import gtk,pango,vte
+import gtk.glade
 
 # Python imports
 import os, sys
@@ -77,7 +78,8 @@ class PTE:
             return True
         return False
 
-    def __init__(self):
+    def __init__(self, share_path):
+        self.settings_dlg=gtk.glade.XML(share_path+"/glade/settings.glade").get_widget("dlgSettings")
         self.terms = conf().sessions
         self.profiles = conf().profiles
         self.conf = conf()

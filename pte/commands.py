@@ -47,7 +47,9 @@ def tab_select(n, main, sender, event):
     main.nb.set_current_page(n-1)
 
 def show_settings(main, sender, event):
-    print 'hey hey'
+    r = main.settings_dlg.run()
+    main.settings_dlg.hide()
+    print 'hey hey',r
 
 we_are_fs = False
 

@@ -11,18 +11,20 @@ BROWSER := firefox
 SPECIALS := pyterm paths.py
 .PHONY:all
 all: $(addsuffix .install,$(SPECIALS)) pyterm.desktop
-	$(MAKE) -C locale
-	$(MAKE) -C help
+	@$(MAKE) -C locale
+	@$(MAKE) -C help
 
 .PHONY:clean
 clean: 
-	-rm -f *.pyc *.install *.bak glade2/*.bak  pyterm.desktop
-	$(MAKE) -C locale clean
-	$(MAKE) -C help clean
+	@echo 'Cleaning up...'
+	@-rm -f *.pyc *.install *.bak glade2/*.bak  pyterm.desktop
+	@$(MAKE) -C locale clean
+	@$(MAKE) -C help clean
 
 .PHONY:install
 install: $(addsuffix .install,$(SPECIALS)) pyterm.desktop
-	mkdir -m 755 -p \
+	@echo 'Preparing directories'
+	@mkdir -m 755 -p \
 		$(DESTDIR)$(bindir) \
 		$(DESTDIR)$(libdir_) \
 		$(DESTDIR)$(libdir_)/pte \
@@ -32,37 +34,40 @@ install: $(addsuffix .install,$(SPECIALS)) pyterm.desktop
 		$(DESTDIR)$(sharedir)/application-registry \
 		$(DESTDIR)$(sharedir)/pixmaps \
 		$(DESTDIR)$(helpdir_)
-	install -m 755 pyterm.install \
+	@echo "Copying files"
+	@install -m 755 pyterm.install \
 		$(DESTDIR)$(bindir)/pyterm
-	install -m 644 *.py \
+	@install -m 644 *.py \
 		$(DESTDIR)$(libdir_)
-	install -m 644 pte/*.py \
+	@install -m 644 pte/*.py \
 		$(DESTDIR)$(libdir_)/pte
-	install -m 644 paths.py.install \
+	@install -m 644 paths.py.install \
 		$(DESTDIR)$(libdir_)/paths.py
-	install -m 644 pyterm.applications \
+	@install -m 644 pyterm.applications \
 		$(DESTDIR)$(sharedir)/application-registry/pyterm.applications
-	install -m 644 pyterm.desktop \
+	@install -m 644 pyterm.desktop \
 		$(DESTDIR)$(sharedir)/applications
-	$(PYTHON) -c 'import compileall; compileall.compile_dir("$(DESTDIR)$(libdir_)")'
-	$(PYTHON) -O -c 'import compileall; compileall.compile_dir("$(DESTDIR)$(libdir_)")'
-	-install -m 644 \
+	@echo 'Precompiling PY files'
+	@$(PYTHON) -c 'import compileall; compileall.compile_dir("$(DESTDIR)$(libdir_)")'
+	@$(PYTHON) -O -c 'import compileall; compileall.compile_dir("$(DESTDIR)$(libdir_)")'
+	@-install -m 644 \
 		glade/*.glade \
 		$(DESTDIR)$(sharedir_)/glade
-	-install -m 644 \
+	@-install -m 644 \
 		glade/pixmaps/*.xpm \
 		glade/pixmaps/*.png \
 		$(DESTDIR)$(sharedir_)/glade/pixmaps
-	-install -m 644 glade/pixmaps/icon.png \
+	@-install -m 644 glade/pixmaps/icon.png \
 		$(DESTDIR)$(sharedir)/pixmaps/pyterm.png
-	$(MAKE) -C locale install
-	$(MAKE) -C help install
+	@$(MAKE) -C locale install
+	@$(MAKE) -C help install
 
 pyterm.desktop: pyterm.desktop.in
-	intltool-merge -d locale pyterm.desktop.in pyterm.desktop
+	@intltool-merge -d locale pyterm.desktop.in pyterm.desktop
 
 %.install: %
-	$(PYTHON) tools/install_paths \
+	@echo 'Patching paths in $<'
+	@$(PYTHON) tools/install_paths \
 		libdir=$(libdir_) \
 		localedir=$(localedir) \
 		helpdir=$(helpdir_) \
@@ -71,7 +76,7 @@ pyterm.desktop: pyterm.desktop.in
 
 .PHONY:uninstall
 uninstall:
-	-rm -rf \
+	@-rm -rf \
 		$(sharedir_) \
 		$(docdir_) \
 		$(helpdir_) \
@@ -79,19 +84,18 @@ uninstall:
 		$(bindir)/pyterm \
 		$(sharedir)/applications/pyterm.desktop \
 		$(sharedir)/pixmaps/pyterm.png
-	$(MAKE) -C locale uninstall
-	$(MAKE) -C help uninstall
+	@$(MAKE) -C locale uninstall
+	@$(MAKE) -C help uninstall
 
 .PHONY:changelog
 changelog:
-	cvs2cl -t -d
-
+	@tools/buildcl.sh > changelog
 .PHONY:check
 check:
 	@tools/check_release
 
 .PHONY:release
-release: check upload announce
+release: check changelog upload announce
 
 upload:
 	cvs tag release-$(subst .,_,$(VERSION))

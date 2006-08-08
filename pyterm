@@ -40,5 +40,5 @@ __builtins__.__dict__["ngettext"] = gettext.ngettext
 from pte import PTE
 
 if __name__ == "__main__":
-    pte = PTE()
+    pte = PTE(#SHAREDIR#)
     pte.main()

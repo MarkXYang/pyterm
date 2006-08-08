@@ -15,15 +15,15 @@ install : $(INST_MO)
 
 .PHONY : uninstall
 uninstall :
-	rm -rf $(INST_MO)
+	@rm -rf $(INST_MO)
 
 .PHONY : clean
 clean :
-	rm -rf $(PO:.po=)
+	@rm -rf $(PO:.po=)
 
 $(DESTDIR)$(localedir)/%/LC_MESSAGES/pyterm.mo : %/LC_MESSAGES/pyterm.mo
-	mkdir -m 755 -p $(dir $@) && install -m 644 $< $@
+	@mkdir -m 755 -p $(dir $@) && install -m 644 $< $@
 
 %/LC_MESSAGES/pyterm.mo : %.po
-	mkdir -m 755 -p $(dir $@) && msgfmt -c -o $@ $<
+	@mkdir -m 755 -p $(dir $@) && msgfmt -c -o $@ $<
 
