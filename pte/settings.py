@@ -9,83 +9,23 @@ import os
 # Local imports
 import commands
 
-c = gconf.client_get_default()
 
 __me__ = None # god forgive me for this...
-
-def get_main():
-    return __me__
-
-def set_main(klass):
-    global __me__
-    __me__ = klass
-
-default_dict = dict(
-            title="Shell",
-            font=pango.FontDescription("monospace"),
-            cmd=os.environ['SHELL'],
-            cwd=os.environ['HOME'],
-            icon=None
-        )
-
+__confinst__ = None
 MAIN_PATH = "/apps/pyterm"
 PROFILES_PATH = "%s/profiles"%MAIN_PATH
-SAVED_TABS_PATH = "%s/saved"%MAIN_PATH
+SESSIONS_PATH = "%s/saved"%MAIN_PATH
 BINDINGS_PATH = "%s/bindings"%MAIN_PATH
-PROFILES_COUNT_PATH = "%s/count"%PROFILES_PATH
-SAVED_TABS_ALLOW_PATH = "%s/allow_savetabs"%MAIN_PATH
+SAVE_SESSIONS_PATH = "%s/save_sessions"%MAIN_PATH
 
-def get_default_profile():
-   return get_profile(0)
-   
-def new_profile(d):
-    pcount = c.get_int(PROFILES_COUNT_PATH)
-    c.set_int(PROFILES_COUNT_PATH,pcount+1)
-    path = "%s/%d"%(PROFILES_PATH,pcount)
-    c.set_string(path+"/title",d['title'])
-    c.set_string(path+"/cmd",d['cmd'])
-    c.set_string(path+"/cwd",d['cwd'])
-    c.set_string(path+"/font",d['font'].to_string())
-    c.set_int(path+"/icon",d['icon'] or 0)
-    d['id'] = pcount
-    return d
-            
-   
-def get_profile(pid):
-    path = "%s/%d"%(PROFILES_PATH,pid)
-    if not c.dir_exists(path):
-        return new_profile(default_dict)
-    return dict(
-            id=pid,
-            title=c.get_string(path+"/title"),
-            font=pango.FontDescription(c.get_string(path+"/font")),
-            cmd=c.get_string(path+"/cmd"),
-            cwd=c.get_string(path+"/cwd"),
-            icon=c.get_int(path+"/icon")
-        )
-
-def get_profiles():
-    ret = {}
-    for i in c.all_dirs(PROFILES_PATH):
-        ret[i] = get_profile(int(i[i.rfind('/')+1:]))
-    return ret
-
-def get_saved_tabs():
-    ret = []
-    for i in c.all_dirs(SAVED_TABS_PATH):
-        t=c.get_string(i+"/title")
-        p=get_profile(c.get_int(i+"/profile"))
-        ret += [ dict(title=t, profile=p, widget=None) ]
-    return ret
-
-def save_tabs(terms):    
-    if c.dir_exists(SAVED_TABS_PATH):
-        c.remove_dir(SAVED_TABS_PATH)
-    if c.get_bool(SAVED_TABS_ALLOW_PATH):
-        for (i,t) in enumerate(terms):
-            c.set_string("%s/%d/title"%(SAVED_TABS_PATH,i), t['title'] or t['profile']['title'])
-            c.set_int("%s/%d/profile"%(SAVED_TABS_PATH,i), t['profile']['id'])
-
+default_profile =   dict(
+                        title="Shell",
+                        font=pango.FontDescription("monospace"),
+                        cmd=os.environ['SHELL'],
+                        cwd=os.environ['HOME'],
+                        name='Default',
+                        icon=None
+                    )
 
 default_bindings = dict(
         show_settings   = { "key":'F12', "command": commands.show_settings },
@@ -108,18 +48,91 @@ default_bindings = dict(
         tab_select_9    = { "key":'<Alt>9', "command": lambda a,b,c: commands.tab_select(9,a,b,c) },
         )
 
-def write_bindings(b):
-    for abind in b.keys():
-        c.set_string("%s/%s"%(BINDINGS_PATH,abind),b[abind]['key'])
+
+c = gconf.client_get_default()
+
+class Configuration(object):
+    @staticmethod
+    def inst():
+        global __confinst__
+        if not __confinst__:
+            __confinst__ = Configuration()
+        return __confinst__
+
+    def get_profile(self, name):
+        path = "%s/%s"%(PROFILES_PATH,name)
+        return dict(
+                    name=name,
+                    title=c.get_string(path+"/title"),
+                    font=pango.FontDescription(c.get_string(path+"/font")),
+                    cmd=c.get_string(path+"/cmd"),
+                    cwd=c.get_string(path+"/cwd"),
+                    icon=c.get_int(path+"/icon")
+                )
+
+    def get_profiles(self):
+        ret = {}
+        for i in c.all_dirs(PROFILES_PATH):
+            name = i[i.rfind('/')+1:]
+            ret [name] = self.get_profile(name)
+        if not ret:
+            ret["Default"] = self.save_profile("Default",  default_profile) 
+        return ret
+     
+   
+    def save_profile(self, name, d):
+        path = "%s/%s"%(PROFILES_PATH,name)
+        c.set_string(path+"/title",d['title'])
+        c.set_string(path+"/cmd",d['cmd'])
+        c.set_string(path+"/cwd",d['cwd'])
+        c.set_string(path+"/font",d['font'].to_string())
+        c.set_int(path+"/icon",d['icon'] or 0)
+        d['name'] = name
+        return d
+            
+    def set_profiles(self, profs):
+        for (pname, prof) in profs.items():
+            save_profile(pname, prof)
+
+    def get_sessions(self):
+        ret = []
+        if c.dir_exists(SESSIONS_PATH):
+            for i in c.all_dirs(SESSIONS_PATH):
+                t=c.get_string(i+"/title")
+                p=self.get_profile(c.get_string(i+"/profile"))
+                ret += [ dict(title=t, profile=p, widget=None) ]
+        return ret
+
+    def set_sessions(self,terms):    
+        if c.dir_exists(SESSIONS_PATH):
+            c.remove_dir(SESSIONS_PATH)
+        if c.get_bool(SAVE_SESSIONS_PATH) or True: #FIXME
+            for (i,t) in enumerate(terms):
+                c.set_string("%s/%d/title"%(SESSIONS_PATH,i), t['title'] or t['profile']['title'])
+                c.set_string("%s/%d/profile"%(SESSIONS_PATH,i), t['profile']['name'])
+
+    def set_bindings(self,b):
+        for abind in b.keys():
+            c.set_string("%s/%s"%(BINDINGS_PATH,abind),b[abind]['key'])
+
+    def get_bindings(self):
+        ret = {}
+        if not c.dir_exists(BINDINGS_PATH):
+            self.set_bindings(default_bindings)
+            return default_bindings
+
+        for abind in default_bindings.keys():
+            key = c.get_string("%s/%s"%(BINDINGS_PATH,abind))
+            if key:
+                ret[abind] = { 'key' : key, 'command' : default_bindings[abind]['command'] }
+        return ret
+
+    profiles = property(get_profiles, set_profiles, doc = "Dict of profiles")
+    sessions = property(get_sessions, set_sessions, doc = "List of sessions")
+    bindings = property(get_bindings, set_bindings, doc = "Dict of bindings")
+    main     = None
 
 
-def read_bindings():
-    ret = {}
-    if not c.dir_exists(BINDINGS_PATH):
-        write_bindings(default_bindings)
-        return default_bindings
+conf = Configuration.inst
 
-    for abind in default_bindings.keys():
-        ret[abind] = { 'key' : c.get_string("%s/%s"%(BINDINGS_PATH,abind)),
-                       'command' : default_bindings[abind]['command'] }
-    return ret
+__all__ = [ conf ]

@@ -5,10 +5,11 @@ import gtk,pango,vte
 
 # Python imports
 import os, sys
+import gettext
 
 # Local imports
-import settings as conf
 import gui
+from settings import conf
 
 # Main Class
 class PTE:
@@ -25,8 +26,8 @@ class PTE:
         self.remove_book_by_n(page)
 
     def exit(self):
-        conf.save_tabs(self.terms)
-        print "Thank you for using PyTerm by Reflog"
+        conf().sessions=self.terms
+        print _("Thank you for using PyTerm by Reflog")
  
     def delete_event(self, widget, event, data=None):
         self.exit()
@@ -39,22 +40,21 @@ class PTE:
         if term == self.nb.get_nth_page(self.nb.get_current_page()):
             self.window.set_title(term.get_window_title())
 
-    def new_tab(self, profile=conf.get_default_profile(), title=None):
+    def new_tab(self, profile=settings.default_profile, title=None):
         eventBox = gui.create_custom_tab(self.nb, title, profile, self.remove_book)
         term = vte.Terminal()
         term.set_font(profile['font'])
         term.fork_command(profile['cmd'],None,None,profile['cwd'],True,True,True)
         term.connect("child-exited",self.child_exited)
         term.connect("window-title-changed",self.title_changed)
-        eventBox.connect('button-press-event',gui.tab_button_press)
         self.nb.append_page(term, eventBox)
         self.nb.show_all()
         #s.set_tab_reorderable(self.nb.get_nth_page(self.nb.page_num(term)), True) # TODO: make storeable
-        return term
+        return (term,profile)
  
     def create_tabs(self):
         for t in self.terms:
-            t['widget'] = self.new_tab(t['profile'], t['title'])
+            (t['widget'],z) = self.new_tab(t['profile'], t['title'])
 
     def key_press(self, sender, event):
         if commands.handle_key_press(self,sender,event):
@@ -62,9 +62,11 @@ class PTE:
         return False
 
     def __init__(self):
-        self.terms = conf.get_saved_tabs()
+        self.terms = conf().sessions
+        self.profiles = conf().profiles
+        self.conf = conf()
         if not self.terms: 
-            self.terms += [ dict ( title=None, profile=conf.get_default_profile(), widget=None )  ]
+            self.terms += [ dict ( title=None, profile=settings.default_profile, widget=None )  ]
  
      
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -78,9 +80,10 @@ class PTE:
         
         self.window.show_all()
         self.window.set_focus(self.terms[0]['widget'])
-        conf.set_main(self)
+        conf().main = self
 
     def main(self):
+        gettext.install('pyterm', 'locale', unicode=1)
         try:
             gtk.main()
         except KeyboardInterrupt,e:

@@ -7,7 +7,7 @@ import gtk,pango,vte,gconf
 import os, sys
 
 # Local imports
-import settings as conf
+from settings import conf
 import commands
 
 def add_icon_to_button(button, icon_id):
@@ -22,6 +22,28 @@ def add_icon_to_button(button, icon_id):
     iconBox.pack_start(image, True, False, 0)
     button.add(iconBox)
 
+def input_dialog(parent,title,message,previous_text=""):
+    dlg = gtk.Dialog(title,parent,0,
+               buttons=(   gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                           gtk.STOCK_APPLY, gtk.RESPONSE_YES
+                       )
+                    )
+    hbox = gtk.HBox(False,8)
+    dlg.vbox.pack_start(hbox, False, False, 0)
+    label = gtk.Label(message)
+    hbox.pack_start(label, False, False, 0)
+    e = gtk.Entry()
+    e.set_text(previous_text)
+    hbox.pack_start(e, False, False, 0)
+    dlg.show_all()
+    ret = dlg.run()
+    if ret == gtk.RESPONSE_YES:
+        result = e.get_text()
+    else:
+        result = None
+    dlg.destroy()
+    return result
+
 def create_custom_tab(notebook, title, profile, close_event):
     if not title: title = profile['title']
     eventBox = gtk.EventBox()
@@ -35,6 +57,7 @@ def create_custom_tab(notebook, title, profile, close_event):
     add_icon_to_button(tabButton,gtk.STOCK_CLOSE)
     iconBox = gtk.HBox(False, 0)
     
+    eventBox.connect('button-press-event',tab_button_press)
     eventBox.show()
     tabButton.show()
     tabLabel.show()
@@ -52,12 +75,21 @@ def create_custom_tab(notebook, title, profile, close_event):
     return eventBox
 
 def tab_button_press(obj,event):
+    if event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
+        term = commands.get_action_term(conf().main, obj)
+        lab = conf().main.nb.get_tab_label(term)
+        children = [c for c in lab.get_child().get_children()]
+        label = children[0]
+        ret = input_dialog(conf().main.window,_('Tab renaming'),_('Please enter new title for the tab:'),label.get_text())
+        if ret:
+            commands.tab_rename(conf().main, obj, ret)
+        conf().main.window.set_focus(term)
     if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
         menu = gtk.Menu()
         items = [ 
-                (gtk.STOCK_CLOSE,"_Close Tab",  lambda x: commands.tab_close(conf.get_main(), obj, None) ),
-                (gtk.STOCK_DIALOG_AUTHENTICATION,"_Lock Tab", lambda x: commands.tab_lock(conf.get_main(), obj, None)),
-                (gtk.STOCK_COPY,"_Duplicate Tab", lambda x: commands.tab_duplicate(conf.get_main(), obj, None) )
+                (gtk.STOCK_CLOSE,_("_Close Tab"),  lambda x: commands.tab_close(conf().main, obj, None) ),
+                (gtk.STOCK_DIALOG_AUTHENTICATION,_("_Lock Tab"), lambda x: commands.tab_lock(conf().main, obj, None)),
+                (gtk.STOCK_COPY,_("_Duplicate Tab"), lambda x: commands.tab_duplicate(conf().main, obj, None) )
                 ]
 
         for stockid,label,command in items:
@@ -69,26 +101,6 @@ def tab_button_press(obj,event):
             menu.add(ni)
             ni.show()
         menu.popup(None,None,None,event.button,event.time)
-
-
-class ConfirmDialog(gtk.MessageDialog):
-    def __init__(self, parent, text, path):
-        gtk.MessageDialog.__init__(self, parent, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION,message_format=text) 
-        self.set_border_width(6)
-        self.set_resizable(False)
-        self.add_buttons(
-                         gtk.STOCK_YES, gtk.RESPONSE_YES,
-                         gtk.STOCK_NO, gtk.RESPONSE_NO,
-                         gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL
-                        )
-        box = gtk.VBox(spacing=6)
-        box.set_border_width(6)
-
-        self.vbox.set_spacing(6)
-        self.set_default_response(gtk.RESPONSE_YES)
-        c = ConfigCheckButton("Don't ask this again", path)
-        self.vbox.add(c)
-        self.child.show_all()
 
 
 class ConfigCheckButton(gtk.CheckButton):

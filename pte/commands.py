@@ -1,10 +1,9 @@
 # GTK/Gnome imports
 import pygtk
 pygtk.require('2.0')
-import gtk,pango,vte,gconf
+import gtk,pango,vte
 
-
-import settings as conf    
+import gui
 
 def tab_move_left(main, sender, event):
     pn = main.nb.get_current_page()
@@ -44,12 +43,13 @@ def fullscreen(main, sender, event):
         main.window.unfullscreen()
 
 def tab_new(main, sender, event):
-    w = main.new_tab()
+    (w,p) = main.new_tab()
     pn = main.nb.page_num(w)
     main.nb.set_current_page(pn)
     main.window.set_focus(w)
+    main.terms += [ dict ( title=None, profile=p, widget=w )  ]
 
-def __get_action_tab(main, sender):
+def get_action_tab(main, sender):
     pn = -1
     if type(sender) is gtk.Window:
         pn = main.nb.get_current_page()
@@ -59,14 +59,38 @@ def __get_action_tab(main, sender):
                 pn = i
     return pn
 
+def get_action_term(main, sender):
+    if type(sender) is gtk.Window:
+        pn = main.nb.get_current_page()
+        for (i,p) in enumerate(main.nb.get_children()):
+            if pn == i:
+                return p
+    else:
+        for (i,p) in enumerate(main.nb.get_children()):
+            if main.nb.get_tab_label(p) == sender:
+                return p
+                
+    return None
+
+
+def tab_rename(main, sender, event):
+    tabn = get_action_term(main, sender)
+    prof = None
+    for t in main.terms:
+        if t['widget'] == tabn:
+            prof = t['profile']
+    if prof:
+        main.nb.set_tab_label(tabn,gui.create_custom_tab(main.nb, event, prof, main.remove_book))
+        t['title'] = event
+
 def tab_close(main, sender, event):
-    main.remove_book_by_n( __get_action_tab(main, sender) )
+    main.remove_book_by_n( get_action_tab(main, sender) )
 
 def tab_lock(main, sender, event):
     pass
 
 def tab_duplicate(main, sender, event):
-    t = main.nb.get_nth_page( __get_action_tab(main, sender) )
+    t = main.nb.get_nth_page( get_action_tab(main, sender) )
     for term in main.terms:
         if term['widget'] == t:
             ta = dict ( title=term['title'], profile=term['profile'], widget=None )  
@@ -81,7 +105,7 @@ def command_by_key(b, key, state):
     
 
 def handle_key_press(main, sender, event):
-    cmd = command_by_key(conf.read_bindings(), event.keyval, event.state)
+    cmd = command_by_key(main.conf.bindings, event.keyval, event.state)
     if cmd:
         cmd(main, sender,event)
         return True
