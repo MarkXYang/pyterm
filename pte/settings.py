@@ -34,6 +34,7 @@ PROFILES_PATH = "%s/profiles"%MAIN_PATH
 SESSIONS_PATH = "%s/saved"%MAIN_PATH
 BINDINGS_PATH = "%s/bindings"%MAIN_PATH
 SAVE_SESSIONS_PATH = "%s/save_sessions"%MAIN_PATH
+TAB_POS_PATH = "%s/tab_pos"%MAIN_PATH
 
 default_profile =   dict(
                         title="Shell",
@@ -65,6 +66,7 @@ default_bindings = dict(
         tab_select_9    = { "key":'<Alt>9', "command": lambda a,b,c: commands.tab_select(9,a,b,c) },
         )
 
+tab_pos_map = dict(Left = 0, Right = 1, Top = 2, Bottom = 3)
 
 c = gconf.client_get_default()
 
@@ -84,6 +86,7 @@ class Configuration(object):
                     font=pango.FontDescription(c.get_string(path+"/font")),
                     cmd=c.get_string(path+"/cmd"),
                     cwd=c.get_string(path+"/cwd"),
+                    sacred=c.get_bool(path+"/sacred"),
                     icon=c.get_int(path+"/icon")
                 )
 
@@ -93,17 +96,19 @@ class Configuration(object):
             name = i[i.rfind('/')+1:]
             ret [name] = self.get_profile(name)
         if not ret:
-            ret["Default"] = self.save_profile("Default",  default_profile) 
+            ret["Default"] = self.save_profile("Default",  default_profile, True) 
         return ret
      
    
-    def save_profile(self, name, d):
+    def save_profile(self, name, d, sacred=False):
         path = "%s/%s"%(PROFILES_PATH,name)
         c.set_string(path+"/title",d['title'])
         c.set_string(path+"/cmd",d['cmd'])
         c.set_string(path+"/cwd",d['cwd'])
         c.set_string(path+"/font",d['font'].to_string())
         c.set_int(path+"/icon",d['icon'] or 0)
+        c.set_bool(path+"/sacred",sacred)
+        d['sacred'] = sacred
         d['name'] = name
         return d
             
@@ -123,7 +128,7 @@ class Configuration(object):
     def set_sessions(self,terms):    
         if c.dir_exists(SESSIONS_PATH):
             c.remove_dir(SESSIONS_PATH)
-        if c.get_bool(SAVE_SESSIONS_PATH) or True: #FIXME
+        if c.get_bool(SAVE_SESSIONS_PATH):
             for (i,t) in enumerate(terms):
                 c.set_string("%s/%d/title"%(SESSIONS_PATH,i), t['title'] or t['profile']['title'])
                 c.set_string("%s/%d/profile"%(SESSIONS_PATH,i), t['profile']['name'])
@@ -144,9 +149,17 @@ class Configuration(object):
                 ret[abind] = { 'key' : key, 'command' : default_bindings[abind]['command'] }
         return ret
 
+    def set_tab_position(self, pos):
+        v = pos
+        #if type(pos) == int:
+        #    v = tab_pos_map[v]
+        c.set_string(TAB_POS_PATH, v)
+
     profiles = property(get_profiles, set_profiles, doc = "Dict of profiles")
     sessions = property(get_sessions, set_sessions, doc = "List of sessions")
     bindings = property(get_bindings, set_bindings, doc = "Dict of bindings")
+    save_sessions = property(lambda x: c.get_bool(SAVE_SESSIONS_PATH), lambda y,x: c.set_bool(SAVE_SESSIONS_PATH, x), doc = "Should sessions be saved?")
+    tab_position = property(lambda x: c.get_string(TAB_POS_PATH) or 'Top', set_tab_position, doc = "Location of the tabs")
     main     = None
 
 

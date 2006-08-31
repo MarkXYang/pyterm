@@ -25,80 +25,51 @@ import gtk.glade
 import os, sys
 
 # Local imports
-import gui
+import gui,settings
 from settings import conf
+from settings_window import SettingsWindow
 
 # Main Class
 class PTE:
-    def remove_book_by_n(self, page):
-        if self.nb.get_n_pages() == 1:
-            self.window.destroy()
-            self.exit()
-
-        self.nb.remove_page(page)
-        self.nb.queue_draw_area(0,0,-1,-1)
- 
-    def remove_book(self, button, *args):
-        page = self.nb.page_num(button)
-        self.remove_book_by_n(page)
-
     def exit(self):
-        conf().sessions=self.terms
+        conf().sessions=[s['session'] for s in self.nb.terminals]
         print _("Thank you for using PyTerm by Reflog")
  
     def delete_event(self, widget, event, data=None):
         self.exit()
         return False
 
-    def child_exited(self, control):
-        self.remove_book(control)
-
-    def title_changed(self, term):
-        if term == self.nb.get_nth_page(self.nb.get_current_page()):
-            self.window.set_title(term.get_window_title())
-
-    def new_tab(self, profile=settings.default_profile, title=None):
-        eventBox = gui.create_custom_tab(self.nb, title, profile, self.remove_book)
-        term = vte.Terminal()
-        term.set_font(profile['font'])
-        term.fork_command(profile['cmd'],None,None,profile['cwd'],True,True,True)
-        term.connect("child-exited",self.child_exited)
-        term.connect("window-title-changed",self.title_changed)
-        self.nb.append_page(term, eventBox)
-        self.nb.show_all()
-        #s.set_tab_reorderable(self.nb.get_nth_page(self.nb.page_num(term)), True) # TODO: make storeable
-        return (term,profile)
- 
-    def create_tabs(self):
-        for t in self.terms:
-            (t['widget'],z) = self.new_tab(t['profile'], t['title'])
-
     def key_press(self, sender, event):
+        print 'key press'
         if commands.handle_key_press(self,sender,event):
             return True
         return False
 
     def __init__(self, share_path):
-        self.settings_dlg=gtk.glade.XML(share_path+"/glade/settings.glade").get_widget("dlgSettings")
-        self.terms = conf().sessions
+        #FIXME: self.settings_dlg=gtk.glade.XML(share_path+"/glade/settings.glade").get_widget("dlgSettings")
+        self.settings_dlg=SettingsWindow()
         self.profiles = conf().profiles
         self.conf = conf()
-        if not self.terms: 
-            self.terms += [ dict ( title=None, profile=settings.default_profile, widget=None )  ]
- 
+
      
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect("delete_event", self.delete_event)
         self.window.connect("destroy", lambda w:  gtk.main_quit())
         self.window.connect("key-press-event", self.key_press)
-        self.nb = gtk.Notebook()
+        self.nb = gui.TerminalNotebook(self)
         self.window.add(self.nb)
+        self.nb.create_tabs(conf().sessions)
         self.nb.set_scrollable(True) # TODO: make settings
-        self.create_tabs()
         
         self.window.show_all()
-        self.window.set_focus(self.terms[0]['widget'])
+        self.window.set_focus(self.nb.terminals[0]['term'])
         conf().main = self
+        self.update_ui()
+
+    def update_ui(self):
+        """ Should be called on every configuration change """
+        self.nb.set_tab_pos(settings.tab_pos_map[self.conf.tab_position])
+        
 
     def main(self):
         try:

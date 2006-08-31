@@ -25,19 +25,7 @@ import os, sys
 
 # Local imports
 from settings import conf
-import commands
-
-def add_icon_to_button(button, icon_id):
-    iconBox = gtk.HBox(False, 0)
-    image = gtk.Image()
-    image.set_from_stock(icon_id,gtk.ICON_SIZE_MENU)
-    gtk.Button.set_relief(button,gtk.RELIEF_NONE)
-    settings = gtk.Widget.get_settings (button);
-    (w,h) = gtk.icon_size_lookup_for_settings(settings,gtk.ICON_SIZE_MENU);
-    gtk.Widget.set_size_request (button, w + 4, h + 4);
-    image.show()
-    iconBox.pack_start(image, True, False, 0)
-    button.add(iconBox)
+import commands,settings
 
 def input_dialog(parent,title,message,previous_text=""):
     dlg = gtk.Dialog(title,parent,0,
@@ -61,63 +49,151 @@ def input_dialog(parent,title,message,previous_text=""):
     dlg.destroy()
     return result
 
-def create_custom_tab(notebook, title, profile, close_event):
-    if not title: title = profile['title']
-    eventBox = gtk.EventBox()
-    tabBox = gtk.HBox(False, 2)
-    tabLabel = gtk.Label(title)
+class TerminalNotebookTablLabel(gtk.EventBox):# (notebook, title, profile, close_event):
+    def __init__(self, parent, profile, title, close_callback):
+        self.profile = None
+        self.title = None
+        self.owner = parent
+        gtk.EventBox.__init__(self)
 
-    tabButton=gtk.Button()
-    tabButton.connect('clicked',close_event, notebook)
+        self.tabBox = gtk.HBox(False, 2)
+        self.tabLabel = gtk.Label()
+        #self.tabLabel = gtk.Entry()
+        #self.tabLabel.set_editable(False)
+        #self.tabLabel.set_has_frame(False)
+        #self.tabLabel.set_sensitive(False)
+        #self.tabLabel.modify_base(gtk.STATE_INSENSITIVE, self.get_style().bg[gtk.STATE_PRELIGHT])
+        #self.tabLabel.modify_text(gtk.STATE_INSENSITIVE, self.get_style().fg[gtk.STATE_PRELIGHT])
 
-    #Add a picture on a button
-    add_icon_to_button(tabButton,gtk.STOCK_CLOSE)
-    iconBox = gtk.HBox(False, 0)
-    
-    eventBox.connect('button-press-event',tab_button_press)
-    eventBox.show()
-    tabButton.show()
-    tabLabel.show()
-    
-    if profile['icon']:
-        iconImg = gtk.Image()
-        iconImg.set_from_stock(profile['icon'],gtk.ICON_SIZE_MENU)
-        tabBox.pack_start(iconImg, True, False, 0)
+        self.tabButton=gtk.Button()
+        self.tabButton.connect('clicked',close_callback, parent)
 
-    tabBox.pack_start(tabLabel, False)       
-    tabBox.pack_start(tabButton, False)
+        self.add_icon_to_button(self.tabButton,gtk.STOCK_CLOSE)
+        
+        self.connect('button-press-event',self.tab_button_press)
+        
+        self.iconImg = gtk.Image()
+        if profile['icon']:
+            self.tabBox.pack_start(self.iconImg, True, False, 0)
 
-    tabBox.show_all()
-    eventBox.add(tabBox)
-    return eventBox
+        self.tabBox.pack_start(self.tabLabel, False)       
+        self.tabBox.pack_start(self.tabButton, False)
 
-def tab_button_press(obj,event):
-    if event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
-        term = commands.get_action_term(conf().main, obj)
-        lab = conf().main.nb.get_tab_label(term)
-        children = [c for c in lab.get_child().get_children()]
-        label = children[0]
-        ret = input_dialog(conf().main.window,_('Tab renaming'),_('Please enter new title for the tab:'),label.get_text())
-        if ret:
-            commands.tab_rename(conf().main, obj, ret)
-        conf().main.window.set_focus(term)
-    if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
-        menu = gtk.Menu()
-        items = [ 
-                (gtk.STOCK_CLOSE,_("_Close Tab"),  lambda x: commands.tab_close(conf().main, obj, None) ),
-                (gtk.STOCK_DIALOG_AUTHENTICATION,_("_Lock Tab"), lambda x: commands.tab_lock(conf().main, obj, None)),
-                (gtk.STOCK_COPY,_("_Duplicate Tab"), lambda x: commands.tab_duplicate(conf().main, obj, None) )
-                ]
+        self.add(self.tabBox)
+        
+        self.set_profile(profile)
+        self.set_title(title)
 
-        for stockid,label,command in items:
-            ni = gtk.ImageMenuItem(label)
-            ni.connect("activate",command)
-            img = gtk.Image ()
-            img.set_from_stock(stockid, gtk.ICON_SIZE_MENU)
-            ni.set_image(img)
-            menu.add(ni)
-            ni.show()
-        menu.popup(None,None,None,event.button,event.time)
+        self.show_all()
+
+    def add_icon_to_button(self, button, icon_id):
+        iconBox = gtk.HBox(False, 0)
+        image = gtk.Image()
+        image.set_from_stock(icon_id,gtk.ICON_SIZE_MENU)
+        gtk.Button.set_relief(button,gtk.RELIEF_NONE)
+        settings = gtk.Widget.get_settings (button);
+        (w,h) = gtk.icon_size_lookup_for_settings(settings,gtk.ICON_SIZE_MENU);
+        gtk.Widget.set_size_request (button, w + 4, h + 4);
+        image.show()
+        iconBox.pack_start(image, True, False, 0)
+        button.add(iconBox)
+
+
+    def set_title(self, title):
+        if not title: 
+            title = self.profile['title']
+        if title != self.title:
+            self.title = title
+            self.tabLabel.set_text(self.title)
+            self.owner.label_updated(self)
+
+    def set_profile(self, profile):
+        if profile != self.profile:
+            self.profile = profile
+            if profile['icon']:
+                self.iconImg.set_from_stock(self.profile['icon'],gtk.ICON_SIZE_MENU)
+           
+    def tab_button_press(self,obj,event):
+        if event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
+            term = commands.get_action_term(conf().main, obj)
+            lab = conf().main.nb.get_tab_label(term)
+            children = [c for c in lab.get_child().get_children()]
+            label = children[0]
+            ret = input_dialog(conf().main.window,_('Tab renaming'),_('Please enter new title for the tab:'),label.get_text())
+            if ret:
+                self.set_title(ret)
+            conf().main.window.set_focus(term)
+        if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
+            menu = gtk.Menu()
+            items = [ 
+                    (gtk.STOCK_CLOSE,_("_Close Tab"),  lambda x: commands.tab_close(conf().main, obj, None) ),
+                    (gtk.STOCK_DIALOG_AUTHENTICATION,_("_Lock Tab"), lambda x: commands.tab_lock(conf().main, obj, None)),
+                    (gtk.STOCK_COPY,_("_Duplicate Tab"), lambda x: commands.tab_duplicate(conf().main, obj, None) )
+                    ]
+
+            for stockid,label,command in items:
+                ni = gtk.ImageMenuItem(label)
+                ni.connect("activate",command)
+                img = gtk.Image ()
+                img.set_from_stock(stockid, gtk.ICON_SIZE_MENU)
+                ni.set_image(img)
+                menu.add(ni)
+                ni.show()
+            menu.popup(None,None,None,event.button,event.time)
+
+
+class TerminalNotebook(gtk.Notebook):
+    def __init__(self, parent ):
+        self.owner = parent
+        self.terminals = []
+        gtk.Notebook.__init__(self)
+
+    def create_tabs(self, terms= [ dict ( title=None, profile=settings.default_profile  )] ):
+        for t in terms:
+            self.add_terminal(t['profile'],t['title'],t)
+ 
+
+    def label_updated(self, label):
+        """ This event is fired when label's text was changed """
+        for t in self.terminals:
+            if t['label'] == label:
+                t['session']['title'] = label.title
+                break
+
+    def add_terminal(self, profile=settings.default_profile, custom_title=None, session=dict (title=None, profile=settings.default_profile)):
+        label = TerminalNotebookTablLabel(self, profile, custom_title, self.remove_tab_by_sender)
+        term = vte.Terminal()
+        term.set_font(profile['font'])
+        term.fork_command(profile['cmd'],None,None,profile['cwd'],True,True,True)
+        term.connect("child-exited",self.child_exited)
+        term.connect("window-title-changed",self.title_changed)
+        page_n = self.append_page(term, label)
+
+        new_term = dict(page=self.get_nth_page(page_n),page_n=page_n,term=term,profile=profile,label=label,session=session)
+        self.terminals += [ new_term ]
+        self.show_all()
+        return new_term
+
+    def remove_tab_by_n(self, page_n):
+        if self.get_n_pages() == 1:
+            self.owner.window.destroy()
+            self.owner.exit()
+
+        self.remove_page(page_n)
+        self.queue_draw_area(0,0,-1,-1)
+ 
+    def child_exited(self, control):
+        self.remove_tab_by_sender(control)
+
+    def title_changed(self, term):
+        if term == self.get_nth_page(self.get_current_page()):
+            self.window.set_title(term.get_window_title())
+
+
+    def remove_tab_by_sender(self, button, *args):
+        page = self.page_num(button)
+        self.remove_tab_by_n(page)
+
 
 
 class ConfigCheckButton(gtk.CheckButton):

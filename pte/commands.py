@@ -47,9 +47,12 @@ def tab_select(n, main, sender, event):
     main.nb.set_current_page(n-1)
 
 def show_settings(main, sender, event):
-    r = main.settings_dlg.run()
+    main.settings_dlg.read_settings(main.conf)
+    r = main.settings_dlg.run(1,main.window)
     main.settings_dlg.hide()
-    print 'hey hey',r
+    if r == gtk.RESPONSE_OK:
+        main.settings_dlg.write_settings()
+        main.update_ui()
 
 we_are_fs = False
 
@@ -62,11 +65,9 @@ def fullscreen(main, sender, event):
         main.window.unfullscreen()
 
 def tab_new(main, sender, event):
-    (w,p) = main.new_tab()
-    pn = main.nb.page_num(w)
-    main.nb.set_current_page(pn)
-    main.window.set_focus(w)
-    main.terms += [ dict ( title=None, profile=p, widget=w )  ]
+    t = main.nb.add_terminal()
+    main.nb.set_current_page(t['page_n'])
+    main.window.set_focus(t['term'])
 
 def get_action_tab(main, sender):
     pn = -1
@@ -119,7 +120,7 @@ def tab_duplicate(main, sender, event):
 def command_by_key(b, key, state):
     for v in b.values():
         (k,s) = gtk.accelerator_parse(v['key'])
-        if k == key and s == state:
+        if k == key and ((s == state) or (s|gtk.gdk.MOD2_MASK == state)):
             return v['command']
     
 

@@ -17,7 +17,7 @@ all: $(addsuffix .install,$(SPECIALS)) pyterm.desktop
 .PHONY:clean
 clean: 
 	@echo 'Cleaning up...'
-	@-rm -f *.pyc *.install *.bak glade2/*.bak  pyterm.desktop
+	@-rm -f *.pyc *.install *.bak glade2/*.bak  pyterm.desktop changelog.tmp
 	@$(MAKE) -C locale clean
 	@$(MAKE) -C help clean
 
