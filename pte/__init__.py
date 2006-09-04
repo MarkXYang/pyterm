@@ -18,7 +18,7 @@
 # GTK/Gnome imports
 import pygtk
 pygtk.require('2.0')
-import gtk,pango,vte
+import gtk,pango,vte,gnome,gnome.ui
 import gtk.glade
 
 # Python imports
@@ -40,13 +40,11 @@ class PTE:
         return False
 
     def key_press(self, sender, event):
-        print 'key press'
-        if commands.handle_key_press(self,sender,event):
-            return True
-        return False
+        return  commands.handle_key_press(self,sender,event):
 
-    def __init__(self, share_path):
+    def __init__(self, version, share_path):
         #FIXME: self.settings_dlg=gtk.glade.XML(share_path+"/glade/settings.glade").get_widget("dlgSettings")
+        gnome.init("pyterm", version) 
         self.settings_dlg=SettingsWindow()
         self.profiles = conf().profiles
         self.conf = conf()
@@ -69,7 +67,7 @@ class PTE:
     def update_ui(self):
         """ Should be called on every configuration change """
         self.nb.set_tab_pos(settings.tab_pos_map[self.conf.tab_position])
-        
+        self.nb.refresh_profiles()
 
     def main(self):
         try:

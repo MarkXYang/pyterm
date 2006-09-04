@@ -86,10 +86,10 @@ class TerminalNotebookTablLabel(gtk.EventBox):# (notebook, title, profile, close
 
         self.show_all()
 
-    def add_icon_to_button(self, button, icon_id):
+    def add_icon_to_button(self, button, icon):
         iconBox = gtk.HBox(False, 0)
         image = gtk.Image()
-        image.set_from_stock(icon_id,gtk.ICON_SIZE_MENU)
+        image.set_from_stock(icon,gtk.ICON_SIZE_MENU)
         gtk.Button.set_relief(button,gtk.RELIEF_NONE)
         settings = gtk.Widget.get_settings (button);
         (w,h) = gtk.icon_size_lookup_for_settings(settings,gtk.ICON_SIZE_MENU);
@@ -111,28 +111,29 @@ class TerminalNotebookTablLabel(gtk.EventBox):# (notebook, title, profile, close
         if profile != self.profile:
             self.profile = profile
             if profile['icon']:
-                self.iconImg.set_from_stock(self.profile['icon'],gtk.ICON_SIZE_MENU)
+                pixbuf = gtk.gdk.pixbuf_new_from_file(self.profile['icon'])
+                settings = gtk.Widget.get_settings (self.tabButton);
+                (w,h) = gtk.icon_size_lookup_for_settings(settings,gtk.ICON_SIZE_MENU);
+
+                scaled_buf = pixbuf.scale_simple(w,h,gtk.gdk.INTERP_BILINEAR)
+                self.iconImg.set_from_pixbuf(scaled_buf)
            
     def tab_button_press(self,obj,event):
         if event.type == gtk.gdk._2BUTTON_PRESS and event.button == 1:
-            term = commands.get_action_term(conf().main, obj)
-            lab = conf().main.nb.get_tab_label(term)
-            children = [c for c in lab.get_child().get_children()]
-            label = children[0]
-            ret = input_dialog(conf().main.window,_('Tab renaming'),_('Please enter new title for the tab:'),label.get_text())
+            ret = input_dialog(conf().main.window,_('Tab renaming'),_('Please enter new title for the tab:'),self.title)
             if ret:
                 self.set_title(ret)
-            conf().main.window.set_focus(term)
+            conf().main.window.set_focus(self.owner.term_by_label(self))
         if event.type == gtk.gdk.BUTTON_PRESS and event.button == 3:
             menu = gtk.Menu()
             items = [ 
-                    (gtk.STOCK_CLOSE,_("_Close Tab"),  lambda x: commands.tab_close(conf().main, obj, None) ),
-                    (gtk.STOCK_DIALOG_AUTHENTICATION,_("_Lock Tab"), lambda x: commands.tab_lock(conf().main, obj, None)),
-                    (gtk.STOCK_COPY,_("_Duplicate Tab"), lambda x: commands.tab_duplicate(conf().main, obj, None) )
+                    (gtk.STOCK_CLOSE,_("_Close Tab"),  lambda x: commands.tab_close(conf().main, self, None) ),
+                    (gtk.STOCK_DIALOG_AUTHENTICATION,_("_Lock Tab"), lambda x: commands.tab_lock(conf().main, self, None)),
+                    (gtk.STOCK_COPY,_("_Duplicate Tab"), lambda x: commands.tab_duplicate(conf().main, self, None) )
                     ]
 
             for stockid,label,command in items:
-                ni = gtk.ImageMenuItem(label)
+                ni = gtk.ImageMenuItem(self)
                 ni.connect("activate",command)
                 img = gtk.Image ()
                 img.set_from_stock(stockid, gtk.ICON_SIZE_MENU)
@@ -148,7 +149,9 @@ class TerminalNotebook(gtk.Notebook):
         self.terminals = []
         gtk.Notebook.__init__(self)
 
-    def create_tabs(self, terms= [ dict ( title=None, profile=settings.default_profile  )] ):
+    def create_tabs(self, terms=None  ):
+        if not terms:
+            terms = [ dict ( title=None, profile=conf().get_default_profile()  )]
         for t in terms:
             self.add_terminal(t['profile'],t['title'],t)
  
@@ -160,7 +163,16 @@ class TerminalNotebook(gtk.Notebook):
                 t['session']['title'] = label.title
                 break
 
-    def add_terminal(self, profile=settings.default_profile, custom_title=None, session=dict (title=None, profile=settings.default_profile)):
+    def refresh_profiles(self):
+        """ This event is fired after the settings dialog is closed """
+        np = conf().profiles
+        for t in self.terminals:
+            t['label'].set_profile(  np[ t['profile']['name'] ] )
+
+
+    def add_terminal(self, profile=conf().get_default_profile(), custom_title=None, session=None):
+        if not session:
+            session = dict (title=None, profile=conf().get_default_profile())
         label = TerminalNotebookTablLabel(self, profile, custom_title, self.remove_tab_by_sender)
         term = vte.Terminal()
         term.set_font(profile['font'])
@@ -189,6 +201,10 @@ class TerminalNotebook(gtk.Notebook):
         if term == self.get_nth_page(self.get_current_page()):
             self.window.set_title(term.get_window_title())
 
+    def term_by_label(self, label):
+        for t in self.terminals:
+            if t['label'] == label:
+                return t['term']
 
     def remove_tab_by_sender(self, button, *args):
         page = self.page_num(button)

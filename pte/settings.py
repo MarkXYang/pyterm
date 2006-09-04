@@ -42,28 +42,28 @@ default_profile =   dict(
                         cmd=os.environ['SHELL'],
                         cwd=os.environ['HOME'],
                         name='Default',
-                        icon=None
+                        icon=''
                     )
 
 default_bindings = dict(
-        show_settings   = { "key":'F12', "command": commands.show_settings },
-        fullscreen      = { "key":'F11', "command": commands.fullscreen },
-        tab_new         = { "key":'<Control>N', "command": commands.tab_new },
-        tab_close       = { "key":'<Control>W', "command": commands.tab_close },
-        tab_duplicate   = { "key":'<Control><Shift>D', "command": commands.tab_duplicate },
-        tab_move_left   = { "key":'<Control><Shift>Left', "command": commands.tab_move_left },
-        tab_move_right  = { "key":'<Control><Shift>Right', "command": commands.tab_move_right },
-        tab_shift_left  = { "key":'<Shift>Left', "command": commands.tab_shift_left },
-        tab_shift_right = { "key":'<Shift>Right', "command": commands.tab_shift_right },
-        tab_select_1    = { "key":'<Alt>1', "command": lambda a,b,c: commands.tab_select(1,a,b,c) },
-        tab_select_2    = { "key":'<Alt>2', "command": lambda a,b,c: commands.tab_select(2,a,b,c) },
-        tab_select_3    = { "key":'<Alt>3', "command": lambda a,b,c: commands.tab_select(3,a,b,c) },
-        tab_select_4    = { "key":'<Alt>4', "command": lambda a,b,c: commands.tab_select(4,a,b,c) },
-        tab_select_5    = { "key":'<Alt>5', "command": lambda a,b,c: commands.tab_select(5,a,b,c) },
-        tab_select_6    = { "key":'<Alt>6', "command": lambda a,b,c: commands.tab_select(6,a,b,c) },
-        tab_select_7    = { "key":'<Alt>7', "command": lambda a,b,c: commands.tab_select(7,a,b,c) },
-        tab_select_8    = { "key":'<Alt>8', "command": lambda a,b,c: commands.tab_select(8,a,b,c) },
-        tab_select_9    = { "key":'<Alt>9', "command": lambda a,b,c: commands.tab_select(9,a,b,c) },
+        show_settings   = { "key":'F12', "command": commands.show_settings, "title":"Show Settings", "group":"Main UI" },
+        fullscreen      = { "key":'F11', "command": commands.fullscreen, "title":'Toggle Fullscreen', "group":"Main UI" },
+        tab_new         = { "key":'<Control>N', "command": commands.tab_new, "title":"New Tab", "group":"Tab managment" },
+        tab_close       = { "key":'<Control>W', "command": commands.tab_close, "title":"Close Tab", "group":"Tab managment"  },
+        tab_duplicate   = { "key":'<Control><Shift>D', "command": commands.tab_duplicate, "title":"Duplicate Tab", "group":"Tab managment"  },
+        tab_move_left   = { "key":'<Control><Shift>Left', "command": commands.tab_move_left, "title":"Move Tab Left", "group":"Tab managment"  },
+        tab_move_right  = { "key":'<Control><Shift>Right', "command": commands.tab_move_right, "title":"Move Tab Right", "group":"Tab managment"  },
+        tab_shift_left  = { "key":'<Shift>Left', "command": commands.tab_shift_left, "title":"Shift Tab Left", "group":"Tab managment"  },
+        tab_shift_right = { "key":'<Shift>Right', "command": commands.tab_shift_right, "title":"Shift Tab Right", "group":"Tab managment"  },
+        tab_select_1    = { "key":'<Alt>1', "command": lambda a,b,c: commands.tab_select(1,a,b,c), "title":"Select Tab 1", "group":"Tab selection" },
+        tab_select_2    = { "key":'<Alt>2', "command": lambda a,b,c: commands.tab_select(2,a,b,c), "title":"Select Tab 2", "group":"Tab selection" },
+        tab_select_3    = { "key":'<Alt>3', "command": lambda a,b,c: commands.tab_select(3,a,b,c), "title":"Select Tab 3", "group":"Tab selection" },
+        tab_select_4    = { "key":'<Alt>4', "command": lambda a,b,c: commands.tab_select(4,a,b,c), "title":"Select Tab 4", "group":"Tab selection" },
+        tab_select_5    = { "key":'<Alt>5', "command": lambda a,b,c: commands.tab_select(5,a,b,c), "title":"Select Tab 5", "group":"Tab selection" },
+        tab_select_6    = { "key":'<Alt>6', "command": lambda a,b,c: commands.tab_select(6,a,b,c), "title":"Select Tab 6", "group":"Tab selection" },
+        tab_select_7    = { "key":'<Alt>7', "command": lambda a,b,c: commands.tab_select(7,a,b,c), "title":"Select Tab 7", "group":"Tab selection" },
+        tab_select_8    = { "key":'<Alt>8', "command": lambda a,b,c: commands.tab_select(8,a,b,c), "title":"Select Tab 8", "group":"Tab selection" },
+        tab_select_9    = { "key":'<Alt>9', "command": lambda a,b,c: commands.tab_select(9,a,b,c), "title":"Select Tab 9", "group":"Tab selection" },
         )
 
 tab_pos_map = dict(Left = 0, Right = 1, Top = 2, Bottom = 3)
@@ -87,7 +87,7 @@ class Configuration(object):
                     cmd=c.get_string(path+"/cmd"),
                     cwd=c.get_string(path+"/cwd"),
                     sacred=c.get_bool(path+"/sacred"),
-                    icon=c.get_int(path+"/icon")
+                    icon=c.get_string(path+"/icon")
                 )
 
     def get_profiles(self):
@@ -98,23 +98,28 @@ class Configuration(object):
         if not ret:
             ret["Default"] = self.save_profile("Default",  default_profile, True) 
         return ret
-     
+  
+    def get_default_profile(self):
+        return self.profiles['Default']
    
-    def save_profile(self, name, d, sacred=False):
+    def save_profile(self, name, d, force_sacred=False):
         path = "%s/%s"%(PROFILES_PATH,name)
         c.set_string(path+"/title",d['title'])
         c.set_string(path+"/cmd",d['cmd'])
         c.set_string(path+"/cwd",d['cwd'])
         c.set_string(path+"/font",d['font'].to_string())
-        c.set_int(path+"/icon",d['icon'] or 0)
-        c.set_bool(path+"/sacred",sacred)
-        d['sacred'] = sacred
+        c.set_string(path+"/icon",d['icon'] or '')
+        if not force_sacred:
+            c.set_bool(path+"/sacred",d['sacred'])
+        else:
+            c.set_bool(path+"/sacred",True)
+            d['sacred'] = True
         d['name'] = name
         return d
             
     def set_profiles(self, profs):
         for (pname, prof) in profs.items():
-            save_profile(pname, prof)
+            self.save_profile(pname, prof)
 
     def get_sessions(self):
         ret = []
