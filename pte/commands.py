@@ -104,7 +104,7 @@ def tab_rename(main, sender, event):
         t['title'] = event
 
 def tab_close(main, sender, event):
-    main.remove_book_by_n( get_action_tab(main, sender) )
+    main.nb.remove_tab_by_n( get_action_tab(main, sender) )
 
 def tab_lock(main, sender, event):
     pass

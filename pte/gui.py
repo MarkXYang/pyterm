@@ -133,7 +133,7 @@ class TerminalNotebookTablLabel(gtk.EventBox):# (notebook, title, profile, close
                     ]
 
             for stockid,label,command in items:
-                ni = gtk.ImageMenuItem(self)
+                ni = gtk.ImageMenuItem(label)
                 ni.connect("activate",command)
                 img = gtk.Image ()
                 img.set_from_stock(stockid, gtk.ICON_SIZE_MENU)

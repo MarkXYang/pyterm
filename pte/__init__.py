@@ -40,7 +40,7 @@ class PTE:
         return False
 
     def key_press(self, sender, event):
-        return  commands.handle_key_press(self,sender,event):
+        return commands.handle_key_press(self,sender,event)
 
     def __init__(self, version, share_path):
         #FIXME: self.settings_dlg=gtk.glade.XML(share_path+"/glade/settings.glade").get_widget("dlgSettings")
